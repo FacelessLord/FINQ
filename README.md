@@ -28,4 +28,5 @@ because FINQ as opposed to standard library allows you to write each logical par
 | `to_set()`                                       | +          | Creates default python-set containing all distinct sequence elements.                                                     |
 | `count()`                                        | +          | Returns count of elements in sequence.                                                                                    |
 | `min()`                                          | +          | Finds minimal element in sequence.                                                                                        |
-| `reduce_with_first`                              | +          | Applies function to first two elements, then to result and next element until elements end. Allows to specify first element. |
+| `reduce(f:T✕T -> T)`                             | +          | Applies function to first two elements, then to result and next element until elements end. Allows to specify first element. |
+| `reduce_with_first(first:T, f:T✕T -> T)`         | +          | Applies function to first two elements, then to result and next element until elements end.                               |
