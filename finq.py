@@ -24,7 +24,7 @@ class FINQ(Iterable[T]):
     def filter(self, func: Callable[[T], T2]) -> 'FINQ[T2]':
         return FINQ(filter(func, self))
 
-    def sort(self, func: Callable[[T], float]) -> 'FINQ[T2]':
+    def sort(self, func: Callable[[T], float] = lambda f: f) -> 'FINQ[T2]':
         return FINQ(sorted(self, key=func))
 
     def skip(self, count: int) -> 'FINQ[T2]':
@@ -39,12 +39,15 @@ class FINQ(Iterable[T]):
     def enumerate(self, start: int = 0) -> 'FINQ[T2]':
         return FINQ(enumerate(self, start))
 
-    def join(self, delimiter: str) -> str:
+    def join(self, delimiter: str = '') -> str:
         return delimiter.join(self)
 
     def for_each(self, func: NoReturn = lambda f: ()) -> NoReturn:
         for item in self:
             func(item)
+
+    def peek(self, func: NoReturn = lambda f: f) -> 'FINQ[T2]':
+        return FINQPeek(self, func)
 
     def any(self, func: Callable[[T], bool] = lambda f: True) -> bool:
         for i in self:
@@ -57,9 +60,6 @@ class FINQ(Iterable[T]):
             if func(i):
                 return False
         return True
-
-    def peek(self, func: NoReturn = lambda f: f) -> 'FINQ[T2]':
-        return FINQPeek(self, func)
 
     def first(self) -> T:
         return next(iter(self))
@@ -86,11 +86,11 @@ class FINQ(Iterable[T]):
         # todo double enumeration
         return max(self) - min(self)
 
-    def reduce(self, reductor: Callable[[T,T], T]) -> T:
-        return FINQReduce(self, reductor)
+    def reduce(self, reductor: Callable[[T, T], T]) -> T:
+        return next(iter(FINQReduce(self, reductor)))
 
-    def reduce_with_first(self, first: T, reductor: Callable[[T,T], T]) -> T:
-        return FINQReduce(self, reductor, first)
+    def reduce_with_first(self, first: T, reductor: Callable[[T, T], T]) -> T:
+        return next(iter(FINQReduce(self, reductor, first)))
 
 
 class FINQFlatMap(FINQ[T]):
@@ -109,9 +109,8 @@ class FINQPairs(FINQ[T]):
         super().__init__(source)
 
     def __iter__(self):
-        src_list = list()
-        for i in self.source:
-            src_list.append(i)
+        src_list = list(self.source)
+        for i in src_list:
             for item2 in src_list:
                 yield i, item2
 
@@ -128,7 +127,7 @@ class FINQPeek(FINQ[T]):
 
 
 class FINQReduce(FINQ[T]):
-    def __init__(self, source: Iterable[T], reductor: Callable[[T,T], T], first=None):
+    def __init__(self, source: Iterable[T], reductor: Callable[[T, T], T], first=None):
         super().__init__(source)
         self.reductor = reductor
         self.firstValue = first
