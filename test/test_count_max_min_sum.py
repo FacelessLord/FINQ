@@ -45,3 +45,10 @@ def test_max_diff():
     a_f = FINQ(a)
 
     assert a_f.max_diff() == expected
+
+def test_max_diff_with_generator():
+    expected = 25
+
+    a_f = FINQ(i for i in [1, 2, 5, 7, 12, 15, 22, 26])
+
+    assert a_f.max_diff() == expected

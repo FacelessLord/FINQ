@@ -80,11 +80,16 @@ class FINQ(Iterable[T]):
         return max(self)
 
     def sum(self) -> T:
-        return sum(self)
+        return sum(self) or 0
 
     def max_diff(self) -> T:
-        # todo double enumeration
-        return max(self) - min(self)
+        max, min = None, None
+        for i in self:
+            if max is None or i > max:
+                max = i
+            if min is None or i < min:
+                min = i
+        return max - min
 
     def reduce(self, reductor: Callable[[T, T], T]) -> T:
         return next(iter(FINQReduce(self, reductor)))
