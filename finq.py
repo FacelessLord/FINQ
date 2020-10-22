@@ -3,10 +3,16 @@ from typing import Iterable, Callable, TypeVar, Generic, Collection, Any, NoRetu
 T = TypeVar("T")
 T2 = TypeVar("T2")
 
+Identity: Callable[[T], T] = lambda f: f
+Consumer: NoReturn = lambda f: ()
+IdentityTrue: Callable[[T], bool] = lambda f: True
+IdentityFalse: Callable[[T], bool] = lambda f: False
+Sum: Callable[[T, T], T] = lambda a, b: a + b
+Multiply: Callable[[T, T], T] = lambda a, b: a * b
+Square: Callable[[T], T] = lambda a: a * a
+
 
 class FINQ(Iterable[T]):
-    """Note this class is subject to copyright
-       Authored by FacelessLord"""
 
     def __init__(self, source: Iterable[T]):
         self.source = source
@@ -18,14 +24,14 @@ class FINQ(Iterable[T]):
     def map(self, func: Callable[[T], T2]) -> 'FINQ[T2]':
         return FINQ(map(func, self))
 
-    def flat_map(self, func: Callable[[T], Collection[T2]] = lambda f: f) -> 'FINQ[T2]':
+    def flat_map(self, func: Callable[[T], Collection[T2]] = Identity) -> 'FINQ[T2]':
         return FINQFlatMap(self, func)
 
     def filter(self, func: Callable[[T], T2]) -> 'FINQ[T2]':
         return FINQ(filter(func, self))
 
-    def sort(self, func: Callable[[T], float] = lambda f: f) -> 'FINQ[T2]':
-        return FINQ(sorted(self, key=func))
+    def sort(self, func: Callable[[T], float] = Identity, /, reverse=False) -> 'FINQ[T2]':
+        return FINQ(sorted(self, key=func, reverse=reverse))
 
     def skip(self, count: int) -> 'FINQ[T2]':
         return FINQ(o for i, o in enumerate(self, 0) if i >= count)
@@ -42,20 +48,20 @@ class FINQ(Iterable[T]):
     def join(self, delimiter: str = '') -> str:
         return delimiter.join(self)
 
-    def for_each(self, func: NoReturn = lambda f: ()) -> NoReturn:
+    def for_each(self, func: NoReturn = Consumer) -> NoReturn:
         for item in self:
             func(item)
 
-    def peek(self, func: NoReturn = lambda f: f) -> 'FINQ[T2]':
+    def peek(self, func: NoReturn = Identity) -> 'FINQ[T2]':
         return FINQPeek(self, func)
 
-    def any(self, func: Callable[[T], bool] = lambda f: True) -> bool:
+    def any(self, func: Callable[[T], bool] = IdentityTrue) -> bool:
         for i in self:
             if func(i):
                 return True
         return False
 
-    def none(self, func: Callable[[T], bool] = lambda f: True) -> bool:
+    def none(self, func: Callable[[T], bool] = IdentityTrue) -> bool:
         for i in self:
             if func(i):
                 return False
