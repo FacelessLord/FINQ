@@ -16,7 +16,7 @@ First: Callable[[Tuple[T]], T] = lambda t: t[0]
 Second: Callable[[Tuple[T]], T] = lambda t: t[1]
 Multiply: Callable[[T, T], T] = lambda a, b: a * b
 Square: Callable[[T], T] = lambda a: a * a
-OneArgRandom = lambda v: random()
+OneArgRandom: Callable[[T], float] = lambda v: random()
 
 
 def TupleSum(t: Tuple) -> T:
@@ -39,14 +39,20 @@ class FINQ(Iterable[T]):
     def concat(self, b: Iterable[T]) -> 'FINQ[T]':
         return FINQConcat(self, b)
 
-    def map(self, func: Callable[[T], T2]) -> 'FINQ[T2]':
-        return FINQ(map(func, self))
+    def map(self, *func: Callable[[T], T2]) -> 'FINQ[T2]':
+        Map = self
+        for f in func:
+            Map = map(f, Map)
+        return FINQ(Map)
 
     def zip(self, *b: List[Iterable[T2]]) -> 'FINQ[Tuple]':
         return FINQ(zip(self, *b))
 
     def flat_map(self, func: Callable[[T], Iterable[T2]] = Identity) -> 'FINQ[T2]':
         return FINQFlatMap(self, func)
+
+    def flatten(self, flattener: Callable[[T], T2] = Identity) -> 'FINQ[T2]':
+        return FINQFlatten(self, flattener)
 
     def filter(self, func: Callable[[T], T2]) -> 'FINQ[T2]':
         return FINQ(filter(func, self))
@@ -66,11 +72,11 @@ class FINQ(Iterable[T]):
     def pairs(self) -> 'FINQ[Tuple[T,T]]':
         return FINQPairs(self)
 
-    def cartesian_product(self, b: Iterable[T1]) -> 'FINQ[Tuple[T,T1]]':
-        return FINQCartesianProduct(self, b)
+    def cartesian_product(self, b: Iterable[T1], mapping: Callable[[Tuple], T] = None) -> 'FINQ[Tuple[T,T1]]':
+        return FINQCartesianProduct(self, b, mapping)
 
-    def cartesian_power(self, pow: int) -> 'FINQ':
-        return FINQCartesianPower(self, pow)
+    def cartesian_power(self, pow: int, mapping: Callable[[Tuple], T] = None) -> 'FINQ':
+        return FINQCartesianPower(self, pow, mapping)
 
     def enumerate(self, start: int = 0) -> 'FINQ[Tuple[int, T]]':
         return FINQ(enumerate(self, start))
@@ -198,20 +204,27 @@ class FINQReduce(FINQ[T]):
 
 
 class FINQCartesianProduct(FINQ[T], Generic[T, T1]):
-    def __init__(self, source: Iterable[T], b: Iterable[T1]):
+    def __init__(self, source: Iterable[T], b: Iterable[T1], mapping: Callable[[Tuple], T] = None):
         super().__init__(source)
+        self.mapping = mapping
         self.b = b
 
     def __iter__(self):
         b_list = list(self.b)
-        for item in self._source:
-            for b in b_list:
-                yield item, b
+        if self.mapping is not None:
+            for item in self._source:
+                for b in b_list:
+                    yield self.mapping((item, b))
+        else:
+            for item in self._source:
+                for b in b_list:
+                    yield item, b
 
 
 class FINQCartesianPower(FINQ[T]):
-    def __init__(self, source: Iterable[T], pow: int):
+    def __init__(self, source: Iterable[T], pow: int, mapping: Callable[[Tuple], T] = None):
         super().__init__(source)
+        self.mapping = mapping
         self.pow = pow
 
     def __iter__(self):
@@ -223,11 +236,18 @@ class FINQCartesianPower(FINQ[T]):
             return
         items = list(self._source)
         for i in items:
-            for j in FINQCartesianPower(items, self.pow - 1):
-                if isinstance(j, tuple):
-                    yield i, *j
-                else:
-                    yield i, j
+            if self.mapping is not None:
+                for j in FINQCartesianPower(items, self.pow - 1):
+                    if isinstance(j, tuple):
+                        yield self.mapping((i, *j))
+                    else:
+                        yield self.mapping((i, j))
+            else:
+                for j in FINQCartesianPower(items, self.pow - 1):
+                    if isinstance(j, tuple):
+                        yield i, *j
+                    else:
+                        yield i, j
 
 
 class FINQGroupBy(FINQ[List[T]]):
@@ -266,3 +286,17 @@ class FINQConcat(FINQ[T]):
             yield i
         for i in self.b:
             yield i
+
+
+class FINQFlatten(FINQ[T]):
+    def __init__(self, source: Iterable[T], flattener: Callable[[T], T2]):
+        super().__init__(source)
+        self.flattener = flattener
+
+    def __iter__(self):
+        for i in self._source:
+            b = self.flattener(i)
+            if isinstance(b, Iterable):
+                yield from FINQFlatten(b, self.flattener)
+            else:
+                yield b
