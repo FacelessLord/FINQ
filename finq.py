@@ -1,13 +1,13 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
 from random import random
-from typing import Iterable, Callable, TypeVar, Generic, NoReturn, Set, List, Tuple, Dict
+from typing import Iterable, Callable, TypeVar, Generic, NoReturn, Set, List, Tuple, Dict, Counter as TCounter
 
 T = TypeVar("T")
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")
 
 Identity: Callable[[T], T] = lambda f: f
-Consumer: NoReturn = lambda f: ()
+Consumer: NoReturn = lambda f: None
 IdentityTrue: Callable[[T], bool] = lambda f: True
 IdentityFalse: Callable[[T], bool] = lambda f: False
 Sum: Callable[[T, T], T] = lambda a, b: a + b
@@ -19,6 +19,26 @@ Square: Callable[[T], T] = lambda a: a * a
 OneArgRandom: Callable[[T], float] = lambda v: random()
 
 
+def PairWith(*func: Callable[[T], T]):
+    def f(a):
+        res = a
+        for g in func:
+            res = g(res)
+        return a, res
+
+    return f
+
+
+def RPairWith(*func: Callable[[T], T]):
+    def f(a):
+        res = a
+        for g in func:
+            res = g(res)
+        return res, a
+
+    return f
+
+
 def TupleSum(t: Tuple) -> T:
     if len(t) == 0:
         return 0
@@ -26,6 +46,17 @@ def TupleSum(t: Tuple) -> T:
     for i in range(1, len(t)):
         sum += t[i]
     return sum
+
+
+def Compose(*func: Callable[[T], T]):
+    def h(x):
+        res = x
+        for f in func:
+            print(res)
+            res = f(res)
+        return res
+
+    return h
 
 
 class FINQ(Iterable[T]):
@@ -91,7 +122,7 @@ class FINQ(Iterable[T]):
     def peek(self, func: NoReturn = Identity) -> 'FINQ[T]':
         return FINQPeek(self, func)
 
-    def group_by(self, func: Callable[[T], T2]) -> 'FINQ[List[T]]':
+    def group_by(self, func: Callable[[T], T2] = Identity) -> 'FINQ[List[T]]':
         return FINQGroupBy(self, func)
 
     def any(self, func: Callable[[T], bool] = IdentityTrue) -> bool:
@@ -117,6 +148,9 @@ class FINQ(Iterable[T]):
 
     def to_list(self) -> List[T]:
         return list(self)
+
+    def to_counter(self) -> TCounter[T]:
+        return Counter(self)
 
     def to_set(self) -> Set[T]:
         return set(self)
