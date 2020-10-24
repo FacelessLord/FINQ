@@ -88,8 +88,8 @@ class FINQ(Iterable[T]):
     def filter(self, func: Callable[[T], T2]) -> 'FINQ[T2]':
         return FINQ(filter(func, self))
 
-    def distinct(self) -> 'FINQ[T]':
-        return FINQDistinct(self)
+    def distinct(self, func: Callable[[T], T2] = Identity) -> 'FINQ[T]':
+        return FINQDistinct(self, func)
 
     def sort(self, func: Callable[[T], float] = Identity, /, reverse=False) -> 'FINQ[T2]':
         return FINQ(sorted(self, key=func, reverse=reverse))
@@ -100,14 +100,14 @@ class FINQ(Iterable[T]):
     def take(self, count: int) -> 'FINQ[T2]':
         return FINQ(o for i, o in enumerate(self, 0) if i < count)
 
-    def pairs(self) -> 'FINQ[Tuple[T,T]]':
-        return FINQPairs(self)
-
     def cartesian_product(self, b: Iterable[T1], mapping: Callable[[Tuple], T] = None) -> 'FINQ[Tuple[T,T1]]':
         return FINQCartesianProduct(self, b, mapping)
 
     def cartesian_power(self, pow: int, mapping: Callable[[Tuple], T] = None) -> 'FINQ':
         return FINQCartesianPower(self, pow, mapping)
+
+    def pairs(self) -> 'FINQ[Tuple[T,T]]':
+        return FINQPairs(self)
 
     def enumerate(self, start: int = 0) -> 'FINQ[Tuple[int, T]]':
         return FINQ(enumerate(self, start))
@@ -125,6 +125,12 @@ class FINQ(Iterable[T]):
     def group_by(self, func: Callable[[T], T2] = Identity) -> 'FINQ[List[T]]':
         return FINQGroupBy(self, func)
 
+    def random(self, percentage: float) -> 'FINQ[T]':
+        return FINQ(i for i in self if random() < percentage)
+
+    def sort_randomly(self) -> 'FINQ[T]':
+        return self.sort(OneArgRandom)
+
     def any(self, func: Callable[[T], bool] = IdentityTrue) -> bool:
         for i in self:
             if func(i):
@@ -140,20 +146,14 @@ class FINQ(Iterable[T]):
     def first(self) -> T:
         return next(iter(self))
 
-    def random(self, percentage: float) -> 'FINQ[T]':
-        return FINQ(i for i in self if random() < percentage)
-
-    def sort_randomly(self) -> 'FINQ[T]':
-        return self.sort(OneArgRandom)
-
     def to_list(self) -> List[T]:
         return list(self)
 
-    def to_counter(self) -> TCounter[T]:
-        return Counter(self)
-
     def to_set(self) -> Set[T]:
         return set(self)
+
+    def to_counter(self) -> TCounter[T]:
+        return Counter(self)
 
     def to_dict(self, key: Callable[[T], T1] = First, value: Callable[[T], T2] = Second) -> Dict[T1, T2]:
         if key == First and value == Second:
@@ -298,16 +298,18 @@ class FINQGroupBy(FINQ[List[T]]):
 
 
 class FINQDistinct(FINQ[T]):
-    def __init__(self, source: Iterable[T]):
+    def __init__(self, source: Iterable[T], func: Callable[[T], T2]):
         super().__init__(source)
+        self.func = func
 
     def __iter__(self):
         looked = set()
 
         for item in self._source:
-            if item not in looked:
+            var = self.func(item)
+            if var not in looked:
                 yield item
-                looked.add(item)
+                looked.add(var)
 
 
 class FINQConcat(FINQ[T]):
