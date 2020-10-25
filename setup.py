@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="FINQ",
-    version="1.1.0",
+    version="1.1.1",
     author="FacelessLord",
     author_email="skyres21@gmail.com",
     description="Lightweight conveyor data processing python framework",
