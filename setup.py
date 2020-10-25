@@ -1,11 +1,11 @@
 import setuptools
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+with open("README.md", "r", encoding='utf-8') as fh:
+    long_description = fh.read().replace('×', 'x').replace("²", "^2").replace("ⁿ", "^n")
 
 setuptools.setup(
     name="FINQ",
-    version="1.1.1",
+    version="1.1.2",
     author="FacelessLord",
     author_email="skyres21@gmail.com",
     description="Lightweight conveyor data processing python framework",
