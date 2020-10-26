@@ -1,4 +1,4 @@
-from finq import Identity, Consumer, IdentityTrue, IdentityFalse, Sum, Multiply, Square, PairSum, TupleSum, First, \
+from finq.finq import Identity, Consumer, IdentityTrue, IdentityFalse, Sum, Multiply, Square, PairSum, TupleSum, First, \
     Second, FINQ, PairWith, Compose
 
 

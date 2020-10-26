@@ -1,4 +1,4 @@
-from finq import FINQ, First, RPairWith, PairWith, Second
+from finq.finq import FINQ, First, RPairWith, PairWith, Second
 
 
 def test_dict_builds():

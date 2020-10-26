@@ -1,4 +1,4 @@
-from finq import FINQ
+from finq.finq import FINQ
 
 
 def test_concat_different():

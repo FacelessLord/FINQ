@@ -1,4 +1,4 @@
-from finq import FINQ, PairSum, TupleSum
+from finq.finq import FINQ, PairSum, TupleSum
 
 
 def test_cartesian_product():

@@ -1,4 +1,4 @@
-from finq import FINQ
+from finq.finq import FINQ
 
 
 def odd(a):
