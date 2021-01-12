@@ -1,6 +1,6 @@
 from collections import Counter
 
-from finq.finq import FINQ
+from finq import FINQ
 
 
 def test_group_by_identity():

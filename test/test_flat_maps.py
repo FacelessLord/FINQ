@@ -1,4 +1,4 @@
-from finq.finq import FINQ
+from finq import FINQ
 
 
 def test_flat_map_list_of_lists_to_list():

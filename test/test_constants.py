@@ -1,4 +1,4 @@
-from finq.finq import Identity, Consumer, IdentityTrue, IdentityFalse, Sum, Multiply, Square, PairSum, TupleSum, First, \
+from finq import Identity, Consumer, IdentityTrue, IdentityFalse, Sum, Multiply, Square, PairSum, TupleSum, First, \
     Second, FINQ, PairWith, Compose
 
 
@@ -83,7 +83,7 @@ def test_pair_with_identity():
 
 def a(w):
     def _a(x):
-        w.append('a'+str(x))
+        w.append('a' + str(x))
         return x + 1
 
     return _a
@@ -91,7 +91,7 @@ def a(w):
 
 def b(w):
     def _b(x):
-        w.append('b'+str(x))
+        w.append('b' + str(x))
         return x - 1
 
     return _b

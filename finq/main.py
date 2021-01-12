@@ -1,131 +1,8 @@
 from collections import defaultdict, Counter
-from random import random
-from typing import Iterable, Callable, TypeVar, Generic, NoReturn, Set, List, Tuple, Dict, Counter as TCounter
+from typing import Iterable, Generic, Set, List, Dict, Counter as TCounter
 
-T = TypeVar("T")
-T1 = TypeVar("T1")
-T2 = TypeVar("T2")
-
-
-def Identity(v: T) -> T:
-    return v
-
-
-def Consumer(_: T) -> NoReturn:
-    """
-    Consumes given value with no return
-    """
-    return None
-
-
-def IdentityTrue(_: T) -> bool:
-    """
-    Returns True independently of given value
-    """
-    return True
-
-
-def IdentityFalse(_: T) -> bool:
-    """
-    Returns False independently of given value
-    """
-    return False
-
-
-def Sum(a: T, b: T) -> T:
-    """
-    Returns sum of two given value
-    """
-    return a + b
-
-
-def PairSum(t: Tuple[T, T]) -> T:
-    """
-    Returns sum of first two values of Ordered Collection
-    """
-    return t[0] + t[1]
-
-
-def First(t):
-    """
-    Returns first value of Ordered Collection
-    """
-    return t[0]
-
-
-def Second(t):
-    """
-    Returns second value of Ordered Collection
-    """
-    return t[1]
-
-
-def Multiply(a: T, b: T) -> T:
-    """
-    Returns product of two given values
-    """
-    return a * b
-
-
-def Square(a: T) -> T:
-    """
-    Returns square of given value
-    """
-    return a * a
-
-
-def OneArgRandom(_: T) -> float:
-    """
-    Returns random value independent of given value
-    """
-    return random()
-
-
-def PairWith(*func: Callable[[T], T]):
-    """Returns function that, when applied to value `e` returns `e, f1(f2(...fn(e)...))`"""
-
-    def f(a):
-        res = a
-        for g in func:
-            res = g(res)
-        return a, res
-
-    return f
-
-
-def RPairWith(*func: Callable[[T], T]):
-    """Returns function that, when applied to value `e` returns `f1(f2(...fn(e)...)), e`"""
-
-    def f(a):
-        res = a
-        for g in func:
-            res = g(res)
-        return res, a
-
-    return f
-
-
-def TupleSum(t: Tuple) -> T:
-    """Returns sum of given Ordered Collection"""
-    if len(t) == 0:
-        return 0
-    tuple_sum = t[0]
-    for i in range(1, len(t)):
-        tuple_sum += t[i]
-    return tuple_sum
-
-
-def Compose(*func: Callable[[T], T]):
-    """Returns function that, when applied to value `e` returns `f1(f2(...fn(e)...))` """
-
-    def h(x):
-        res = x
-        for f in func:
-            print(res)
-            res = f(res)
-        return res
-
-    return h
+from finq.constants import *
+from finq.typevars import *
 
 
 class FINQ(Iterable[T]):
@@ -143,7 +20,11 @@ class FINQ(Iterable[T]):
          first iterable then of second iterable."""
         return FINQConcat(self, b)
 
-    def map(self, *func: Callable[[T], T]) -> 'FINQ[T]':
+    def map(self, func: Callable[[T], TOut]) -> 'FINQ[TOut]':
+        """Applies given function to every element of sequence. """
+        return FINQ(map(func, self))
+
+    def map_by_composition(self, *func: Callable[[T], T]) -> 'FINQ[T]':
         """Applies composition of given functions to every element of sequence. """
         return FINQ(map(Compose(*func), self))
 
@@ -180,7 +61,7 @@ class FINQ(Iterable[T]):
         """Limits sequence by `count` elements, dropping others."""
         return FINQ(o for i, o in enumerate(self, 0) if i < count)
 
-    def cartesian_product(self, b: Iterable[T1], mapping: Callable[[Tuple], T] = None) -> 'FINQ[Tuple[T,T1]]':
+    def cartesian_product(self, b: Iterable[T2], mapping: Callable[[Tuple], T] = None) -> 'FINQ[Tuple[T,T2]]':
         """Returns Cartesian product of two sequences after application of mapping if specified."""
         return FINQCartesianProduct(self, b, mapping)
 
@@ -354,15 +235,15 @@ class FINQReduce(FINQ[T]):
         yield result
 
 
-class FINQCartesianProduct(FINQ[T], Generic[T, T1]):
+class FINQCartesianProduct(FINQ[T], Generic[T2]):
     """Returns Cartesian product of two sequences after application of mapping if specified."""
 
-    def __init__(self, source: Iterable[T], b: Iterable[T1], mapping: Callable[[Tuple], T] = None):
+    def __init__(self, source: Iterable[T], b: Iterable[T2], mapping: Callable[[Tuple[T, T2]], T] = None):
         super().__init__(source)
         self.mapping = mapping
         self.b = b
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Tuple[T, T2]]:
         b_list = list(self.b)
         if self.mapping is not None:
             for item in self._source:

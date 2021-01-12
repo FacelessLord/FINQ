@@ -1,5 +1,4 @@
-from finq.finq import FINQ
-from test.test_foreach import collector
+from finq import FINQ
 
 
 def test_count():
@@ -45,6 +44,7 @@ def test_max_diff():
     a_f = FINQ(a)
 
     assert a_f.max_diff() == expected
+
 
 def test_max_diff_with_generator():
     expected = 25

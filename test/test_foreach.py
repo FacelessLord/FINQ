@@ -1,4 +1,4 @@
-from finq.finq import FINQ
+from finq import FINQ
 
 
 def collector(l: list):
