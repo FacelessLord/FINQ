@@ -1,5 +1,5 @@
 from collections import defaultdict, Counter
-from typing import Iterable, Generic, Set, List, Dict, Counter as TCounter
+from typing import Iterable, Generic, Set as TSet, List as TList, Dict as TDict, Counter as TCounter
 
 from finq.constants import *
 from finq.typevars import *
@@ -15,6 +15,9 @@ class FINQ(Iterable[T]):
         for item in self._source:
             yield item
 
+    def self(self, extension: Callable[['FINQ[T]'], TOut]):
+        return extension(self)
+
     def concat(self, b: Iterable[T]) -> 'FINQ[T]':
         """Concatenates two sequences, creating sequence that contains items of the
          first iterable then of second iterable."""
@@ -24,11 +27,7 @@ class FINQ(Iterable[T]):
         """Applies given function to every element of sequence. """
         return FINQ(map(func, self))
 
-    def map_by_composition(self, *func: Callable[[T], T]) -> 'FINQ[T]':
-        """Applies composition of given functions to every element of sequence. """
-        return FINQ(map(Compose(*func), self))
-
-    def zip(self, *b: List[Iterable[T2]]) -> 'FINQ[Tuple]':
+    def zip(self, *b: TList[Iterable[T2]]) -> 'FINQ[Tuple[T2, ...]]':
         """Pairs corresponding elements of two sequences in pairs."""
         return FINQ(zip(self, *b))
 
@@ -38,12 +37,12 @@ class FINQ(Iterable[T]):
 
     def flatten(self, flattener: Callable[[T], T2] = Identity) -> 'FINQ[T2]':
         """Applies given function to every element to get collection, then glues these collections.
-        Repeats while all elements are iterables."""
+        Repeats until all elements are non iterable."""
         return FINQFlatten(self, flattener)
 
-    def filter(self, func: Callable[[T], T2]) -> 'FINQ[T2]':
+    def filter(self, predicate: Callable[[T], T2]) -> 'FINQ[T]':
         """Removes elements that doesn't satisfy predicate from sequence."""
-        return FINQ(filter(func, self))
+        return FINQ(filter(predicate, self))
 
     def distinct(self, func: Callable[[T], T2] = Identity) -> 'FINQ[T]':
         """Skips elements which `f(element)` repeated."""
@@ -53,11 +52,11 @@ class FINQ(Iterable[T]):
         """Sorts sequence elements by key given by `f`."""
         return FINQ(sorted(self, key=func, reverse=reverse))
 
-    def skip(self, count: int) -> 'FINQ[T2]':
+    def skip(self, count: int) -> 'FINQ[T]':
         """Skips `count` elements from sequence."""
         return FINQ(o for i, o in enumerate(self, 0) if i >= count)
 
-    def take(self, count: int) -> 'FINQ[T2]':
+    def take(self, count: int) -> 'FINQ[T]':
         """Limits sequence by `count` elements, dropping others."""
         return FINQ(o for i, o in enumerate(self, 0) if i < count)
 
@@ -81,7 +80,7 @@ class FINQ(Iterable[T]):
         """Applies function to each element in sequence leaving sequence unchanged."""
         return FINQPeek(self, func)
 
-    def group_by(self, func: Callable[[T], T2] = Identity) -> 'FINQ[List[T]]':
+    def group_by(self, func: Callable[[T], T2] = Identity) -> 'FINQ[TList[T]]':
         """Splits sequence into sequence of lists of elements which `f(x)` is the same."""
         return FINQGroupBy(self, func)
 
@@ -89,13 +88,18 @@ class FINQ(Iterable[T]):
         """Takes roughly `percentage*100%` of random elements of sequence."""
         return FINQ(i for i in self if random() < percentage)
 
-    def sort_randomly(self) -> 'FINQ[T]':
+    def shuffle(self) -> 'FINQ[T]':
         """Shuffles sequence."""
         return self.sort(OneArgRandom)
 
-    def join(self, delimiter: str = '') -> str:
+    def join_str(self, delimiter: str = '') -> str:
         """Joins sequence by `delimiter`."""
         return delimiter.join(self)
+
+    def join(self, sequence: Iterable[T2], condition: Callable[[T, T2], bool],
+             aggregate: Callable[[T, T2], T3]) -> 'FINQ[T3]':
+        """Joins two sequences. Two values are aggregated if `condition` is true"""
+        return FINQJoin(self, sequence, condition, aggregate)
 
     def for_each(self, func: NoReturn = Consumer) -> NoReturn:
         """Calls `f` for every element of a sequence."""
@@ -127,11 +131,11 @@ class FINQ(Iterable[T]):
         """Takes first element of sequence."""
         return next(iter(self))
 
-    def to_list(self) -> List[T]:
+    def to_list(self) -> TList[T]:
         """Creates default python-list containing all sequence elements."""
         return list(self)
 
-    def to_set(self) -> Set[T]:
+    def to_set(self) -> TSet[T]:
         """Creates default python-set containing all distinct sequence elements."""
         return set(self)
 
@@ -139,7 +143,7 @@ class FINQ(Iterable[T]):
         """Creates Counter containing all sequence elements."""
         return Counter(self)
 
-    def to_dict(self, key: Callable[[T], T1] = First, value: Callable[[T], T2] = Second) -> Dict[T1, T2]:
+    def to_dict(self, key: Callable[[T], T1] = First, value: Callable[[T], T2] = Second) -> TDict[T1, T2]:
         """Creates default python-dict containing mapping `(key(x), value(x))` for every `x` in sequence."""
         if key == First and value == Second:
             return dict(self)
@@ -171,10 +175,15 @@ class FINQ(Iterable[T]):
                 min_v = i
         return max_v - min_v
 
-    def reduce(self, reductor: Callable[[T, T], T], /, first: T = None) -> T:
+    def reduce(self, reducer: Callable[[T, T], T], /, first: T = None) -> T:
         """Applies function to first two elements, then to result and next element until elements end.
          Allows to specify first element."""
-        return next(iter(FINQReduce(self, reductor, first)))
+        return FINQReduce(self, reducer, first)
+
+    def fold(self, mapper: Callable[[T], T2], aggregator: Callable[[T2, T2], T2], /) -> T2:
+        """Applies mapper to each element, then aggregates pairs of T2 into single T2 until elements end.
+        Equivalent to `finq.map(mapper).reduce(aggregator)`"""
+        return FINQFold(self, mapper, aggregator)
 
 
 class FINQFlatMap(FINQ[T]):
@@ -189,6 +198,9 @@ class FINQFlatMap(FINQ[T]):
             for sub_item in self.mapper(item):
                 yield sub_item
 
+    def self(self, extension: Callable[['FINQFlatMap[T]'], TOut]):
+        return extension(self)
+
 
 class FINQPairs(FINQ[T]):
     """Returns Cartesian square of sequence. Equivalent to Cartesian square with Identity mapping."""
@@ -201,6 +213,9 @@ class FINQPairs(FINQ[T]):
         for i in src_list:
             for item2 in src_list:
                 yield i, item2
+
+    def self(self, extension: Callable[['FINQPairs[T]'], TOut]):
+        return extension(self)
 
 
 class FINQPeek(FINQ[T]):
@@ -215,14 +230,17 @@ class FINQPeek(FINQ[T]):
             self.func(item)
             yield item
 
+    def self(self, extension: Callable[['FINQPeek[T]'], TOut]):
+        return extension(self)
+
 
 class FINQReduce(FINQ[T]):
     """Applies function to first two elements, then to result and next element until elements end.
     Allows to specify first element."""
 
-    def __init__(self, source: Iterable[T], reductor: Callable[[T, T], T], first=None):
+    def __init__(self, source: Iterable[T], reducer: Callable[[T, T], T], first=None):
         super().__init__(source)
-        self.reductor = reductor
+        self.reducer = reducer
         self.firstValue = first
 
     def __iter__(self):
@@ -231,11 +249,36 @@ class FINQReduce(FINQ[T]):
             if not result:
                 result = item
                 continue
-            result = self.reductor(result, item)
+            result = self.reducer(result, item)
         yield result
 
+    def self(self, extension: Callable[['FINQReduce[T]'], TOut]):
+        return extension(self)
 
-class FINQCartesianProduct(FINQ[T], Generic[T2]):
+
+class FINQFold(FINQ[T], Generic[T, T2]):
+    """Applies mapper to each element, then aggregates pairs of T2 into single T2 until elements end.
+    Allows to specify first element."""
+
+    def __init__(self, source: Iterable[T], mapper: Callable[[T], T2], aggregator: Callable[[T2, T2], T2]):
+        super().__init__(source)
+        self.mapper = mapper
+        self.aggregator = aggregator
+
+    def __iter__(self):
+        result = None
+        for item in self._source:
+            if not result:
+                result = self.mapper(item)
+                continue
+            result = self.aggregator(result, self.mapper(item))
+        yield result
+
+    def self(self, extension: Callable[['FINQFold[T,T2]'], TOut]):
+        return extension(self)
+
+
+class FINQCartesianProduct(FINQ[T], Generic[T, T2]):
     """Returns Cartesian product of two sequences after application of mapping if specified."""
 
     def __init__(self, source: Iterable[T], b: Iterable[T2], mapping: Callable[[Tuple[T, T2]], T] = None):
@@ -253,6 +296,9 @@ class FINQCartesianProduct(FINQ[T], Generic[T2]):
             for item in self._source:
                 for b in b_list:
                     yield item, b
+
+    def self(self, extension: Callable[['FINQCartesianProduct[T, T2]'], TOut]):
+        return extension(self)
 
 
 class FINQCartesianPower(FINQ[T]):
@@ -285,8 +331,11 @@ class FINQCartesianPower(FINQ[T]):
                     else:
                         yield i, j
 
+    def self(self, extension: Callable[['FINQCartesianPower[T]'], TOut]):
+        return extension(self)
 
-class FINQGroupBy(FINQ[List[T]]):
+
+class FINQGroupBy(FINQ[TList[T]]):
     """Splits sequence into sequence of lists of elements which `f(x)` is the same."""
 
     def __init__(self, source: Iterable[T], func: Callable[[T], T2]):
@@ -299,6 +348,9 @@ class FINQGroupBy(FINQ[List[T]]):
             groups[self.func(i)].append(i)
         for k in groups.keys():
             yield groups[k]
+
+    def self(self, extension: Callable[['FINQGroupBy[T]'], TOut]):
+        return extension(self)
 
 
 class FINQDistinct(FINQ[T]):
@@ -317,6 +369,9 @@ class FINQDistinct(FINQ[T]):
                 yield item
                 looked.add(var)
 
+    def self(self, extension: Callable[['FINQDistinct[T]'], TOut]):
+        return extension(self)
+
 
 class FINQConcat(FINQ[T]):
     """Concatenates two sequences, creating sequence that contains items of
@@ -332,10 +387,13 @@ class FINQConcat(FINQ[T]):
         for i in self.b:
             yield i
 
+    def self(self, extension: Callable[['FINQConcat[T]'], TOut]):
+        return extension(self)
+
 
 class FINQFlatten(FINQ[T]):
     """Applies given function to every element to get collection, then glues these collections.
-     Repeats while all elements are iterables."""
+    Repeats until all elements are non iterable."""
 
     def __init__(self, source: Iterable[T], flattener: Callable[[T], T2]):
         super().__init__(source)
@@ -348,3 +406,25 @@ class FINQFlatten(FINQ[T]):
                 yield from FINQFlatten(b, self.flattener)
             else:
                 yield b
+
+    def self(self, extension: Callable[['FINQFlatten[T]'], TOut]):
+        return extension(self)
+
+
+class FINQJoin(FINQ[T], Generic[T, T2, T3]):
+    def __init__(self, source: Iterable[T], joined_sequence: Iterable[T2], condition: Callable[[T, T2], bool],
+                 aggregator: Callable[[T, T2], T3]):
+        super().__init__(source)
+        self.aggregator = aggregator
+        self.condition = condition
+        self.joined_sequence = joined_sequence
+
+    def __iter__(self):
+        seq_list = list(self.joined_sequence)
+        for i in self._source:
+            for j in seq_list:
+                if self.condition(i, j):
+                    yield self.aggregator(i, j)
+
+    def self(self, extension: Callable[['FINQJoin[T,T2, T3]'], TOut]):
+        return extension(self)

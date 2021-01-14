@@ -9,10 +9,10 @@ To start conveyor processing of your iterable you need to wrap it with `FINQ()` 
 | Method                                           | IsTerminal | Description                                                                                                               |
 |--------------------------------------------------|------------|---------------------------------------------------------------------------------------------------------------------------|
 | `concat(b:Iterable[T])`                          | -          | Concatenates two sequences, creating sequence that contains items of the first iterable then of second iterable.          |
-| `map(*f:T -> T2)`                                | -          | Applies composition of given functions to every element of sequence.                                                      |
+| `map(*f:T -> T2)`                                | -          | Applies given function to every element of sequence.                                                      |
 | `zip(b:Iterable[T])`                             | -          | Pairs corresponding elements of two sequences in pairs.                                                                   |
 | `flat_map(f:T -> Collection[T2] = Identity)`     | -          | Applies given function to every element to get collection, then glues these collections.                                  |
-| `flatten(f:T -> Collection[T] = Identity)`       | -          | Applies given function to every element to get collection, then glues these collections. Repeats while all elements are iterables. |
+| `flatten(f:T -> Collection[T] = Identity)`       | -          | Applies given function to every element to get collection, then glues these collections. Repeats until all elements are non iterable. |
 | `filter(f:T -> bool)`                            | -          | Removes elements that doesn't satisfy predicate from sequence.                                                            |
 | `distinct(f:T -> T2)`                            | -          | Skips elements which `f(element)` repeated.                                                                               |
 | `sort(f:T -> int)`                               | -          | Sorts sequence elements by key given by `f`.                                                                              |
@@ -26,7 +26,8 @@ To start conveyor processing of your iterable you need to wrap it with `FINQ()` 
 | `group_by(mapping:T -> T2 = Identity)`           | -          | Splits sequence into sequence of lists of elements which `f(x)` is the same.                                              |
 | `random(precentage:float)`                       | -          | Takes roughly `percentage*100%` of random elements of sequence.                                                           |
 | `sort_randomly()`                                | -          | Shuffles sequence.                                                                                                        |
-| `join(delimiter:str)`                            | +          | Joins sequence by `delimiter`.                                                                                            |
+| `join_str(delimiter:str)`                        | +          | Joins sequence by `delimiter`.                                                                                            |
+| `join(seq:Iterable[T2], cond: :T×T2 -> bool, aggr:T×T2 -> T3)`| + | Joins two sequences. Two values are aggregated if `condition` is true.                                                                                            |
 | `for_each(f:T -> () = Consumer)`                 | +          | Calls `f` for every element of a sequence. Equivalent to:<br> <code>for e in collection:</code><br><code>    f(e)</code>. |
 | `all(f:T -> bool = IdentityTrue)`                | +          | Checks if all elements in sequence satisfy predicate.                                                       |
 | `any(f:T -> bool = IdentityTrue)`                | +          | Checks if there exist element in sequence that satisfies predicate.                                                       |
@@ -42,6 +43,7 @@ To start conveyor processing of your iterable you need to wrap it with `FINQ()` 
 | `sum()`                                          | +          | Sums all elements of sequence. Works only for summable types.                                                             |
 | `max_diff()`                                     | +          | Counts maximal difference between elements. Equal to difference between max and min for sequence.                         |
 | `reduce(f:T×T -> T, /, first:T)`                 | +          | Applies function to first two elements, then to result and next element until elements end. Allows to specify first element. |
+| `fold(m:T -> T2, g:T2×T2 -> T2)`                 | +          | Applies mapper to each element, then aggregates pairs of T2 into single T2 until elements end. Equivalent to `finq.map(mapper).reduce(aggregator)` |
 
 ## Constant functions
 These functions aren't intended to be called manually. Instead you have to pass them as an arguments to FINQ methods as mappings, reducers, predicates.

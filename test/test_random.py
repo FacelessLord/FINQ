@@ -12,5 +12,5 @@ def test_random_sort():
     a = [1, 2]
     expected1 = [1, 2]
     expected2 = [2, 1]
-    random_sort = FINQ(a).sort_randomly().to_list()
+    random_sort = FINQ(a).shuffle().to_list()
     assert random_sort == expected1 or random_sort == expected2
