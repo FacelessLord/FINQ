@@ -1,0 +1,5 @@
+/build/
+/dist/
+/FINQ.egg-info/
+/venv/
+.idea/

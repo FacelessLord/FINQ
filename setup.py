@@ -5,7 +5,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 
 setuptools.setup(
     name="FINQ",
-    version="1.1.3",
+    version="1.1.4b",
     author="FacelessLord",
     author_email="skyres21@gmail.com",
     description="Lightweight conveyor data processing python framework",
@@ -18,5 +18,5 @@ setuptools.setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )
